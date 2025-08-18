@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG问答系统</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #question-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        #ask-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        #ask-button:hover {
+            background-color: #45a049;
+        }
+
+        #ask-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #response-area {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+            background-color: #f9f9f9;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .loading:after {
+            content: " .";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% {
+                color: rgba(0, 0, 0, 0);
+                text-shadow: .25em 0 0 rgba(0, 0, 0, 0), .5em 0 0 rgba(0, 0, 0, 0);
+            }
+            40% {
+                color: #333;
+                text-shadow: .25em 0 0 rgba(0, 0, 0, 0), .5em 0 0 rgba(0, 0, 0, 0);
+            }
+            60% {
+                text-shadow: .25em 0 0 #333, .5em 0 0 rgba(0, 0, 0, 0);
+            }
+            80%, 100% {
+                text-shadow: .25em 0 0 #333, .5em 0 0 #333;
+            }
+        }
+
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>RAG问答系统</h1>
+    <div>
+        <textarea
+                id="question-input"
+                placeholder="请输入您的问题..."
+                rows="5"
+                style="width: 100%; padding: 12px; font-size: 18px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; resize: vertical;"
+        ></textarea>
+        <button id="ask-button">提问</button>
+        <div class="loading" id="loading-indicator">正在思考中</div>
+        <div id="error-message" class="error" style="display: none;"></div>
+    </div>
+    <div id="response-area"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const questionInput = document.getElementById('question-input');
+        const askButton = document.getElementById('ask-button');
+        const responseArea = document.getElementById('response-area');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+
+        // API配置
+        const API_URL = "http://localhost:8000/ask";
+
+        // 提问函数
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                showError("请输入问题");
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                askButton.disabled = true;
+                loadingIndicator.style.display = 'block';
+                errorMessage.style.display = 'none';
+                responseArea.innerHTML = '';
+
+                // 调用API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 显示结果
+                // responseArea.innerHTML = `
+                //         <!-- <h3>问题: ${data.question}</h3> -->
+                //         <div style="white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                //             ${data.answer}
+                //         </div>
+                //         <p><small>状态: ${data.status}</small></p>
+                //     `;
+                responseArea.innerHTML = data.answer;   // 直接使用后端返回的HTML
+
+            } catch (error) {
+                showError(`请求出错: ${error.message}`);
+                console.error('API调用错误:', error);
+            } finally {
+                askButton.disabled = false;
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // 绑定事件
+        askButton.addEventListener('click', askQuestion);
+        questionInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    });
+</script>
+</body>
+</html>

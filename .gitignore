@@ -1,3 +1,5 @@
 chroma_qa/
 model_dir/
-txt_file
+txt_file/
+.idea
+__pycache__

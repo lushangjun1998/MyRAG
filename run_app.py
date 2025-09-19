@@ -58,6 +58,8 @@ def init_rag_system():
 
 # 全局QA链
 qa_chain = init_rag_system()
+# 全局线程池
+executor = ThreadPoolExecutor(max_workers=32)
 
 # 前端页面路由
 @app.get("/")
@@ -70,10 +72,12 @@ async def ask_question(request: QuestionRequest):
     try:
         # result = await qa_chain.ainvoke(request.question)['result'] # TODO: 这里加入await和ainvoke会报错
         result = await asyncio.get_event_loop().run_in_executor(
-            None,
+            executor,
             lambda: qa_chain.invoke(request.question)['result']
         )
-        html_content = markdown.markdown(result)  # 转换为HTML
+
+        html_content = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL).strip()
+        html_content = markdown.markdown(html_content)  # 转换为HTML
         return {
             "question": request.question,
             "answer": html_content,
